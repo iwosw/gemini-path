@@ -1,0 +1,7 @@
+gemini.google.com
+antigravity.google
+accounts.google.com
+oauth2.googleapis.com
+generativelanguage.googleapis.com
+cloudcode-pa.googleapis.com
+codeassist.googleapis.com
