@@ -5,3 +5,6 @@ oauth2.googleapis.com
 generativelanguage.googleapis.com
 cloudcode-pa.googleapis.com
 codeassist.googleapis.com
+daily-cloudcode-pa.googleapis.com
+cloudaicompanion.googleapis.com
+antigravity-unleash.goog

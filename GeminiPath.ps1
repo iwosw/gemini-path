@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('doctor', 'install', 'start', 'stop', 'status')]
+    [ValidateSet('doctor', 'install', 'start', 'stop', 'status', 'ag-scan', 'ag-patch', 'ag-restore')]
     [string]$Action = 'doctor',
     [ValidateSet('split', 'fake')]
     [string]$Mode = 'split'
@@ -192,6 +192,11 @@ try {
             $session = Get-Session
             if ($session) { Write-Host "Running: PID $($session.pid), mode $($session.mode)" }
             else { Write-Host 'Not running.' }
+        }
+        { $_ -in @('ag-scan', 'ag-patch', 'ag-restore') } {
+            $operation = $Action.Substring(3)
+            & py -3 (Join-Path $root 'antigravity_patch.py') $operation
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         }
     }
 } catch {
