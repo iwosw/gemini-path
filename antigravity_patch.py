@@ -160,7 +160,7 @@ def restore_file(target, state_dir):
     if not manifest.is_file():
         raise ValueError("no patch record found")
     record = json.loads(manifest.read_text(encoding="utf-8"))
-    if str(target.resolve()) != record["target"]:
+    if os.path.normcase(str(target.resolve())) != os.path.normcase(record["target"]):
         raise ValueError("patch record belongs to a different executable")
     if app_running():
         raise ValueError("close Antigravity and its language server first")

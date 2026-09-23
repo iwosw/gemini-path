@@ -1,0 +1,9 @@
+{
+  "name": "geminipath-api-relay",
+  "main": "src/index.mjs",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": true,
+  "placement": {
+    "region": "aws:eu-central-1"
+  }
+}
