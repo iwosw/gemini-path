@@ -1,0 +1,66 @@
+name: Windows installer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "antigravity_*.py"
+      - "tools/create_icon.py"
+      - "installer/**"
+      - "requirements-build.txt"
+      - ".github/workflows/windows-installer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Run patcher tests
+        run: python -m unittest discover -s tests -v
+      - name: Generate icon and standalone application
+        shell: pwsh
+        run: |
+          python -m pip install -r requirements-build.txt
+          python tools/create_icon.py
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name GeminiPath --icon dist/GeminiPath.ico --distpath dist --workpath build --specpath . antigravity_gui.py
+          if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed" }
+          & "dist/GeminiPath.exe" --self-test
+          if ($LASTEXITCODE -ne 0) { throw "Standalone GUI failed its smoke check" }
+      - name: Compile Inno Setup installer
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6/ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "Inno Setup compiler not installed" }
+          & $iscc "installer/GeminiPath.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Installer compilation failed" }
+      - name: Test silent install and uninstall
+        shell: pwsh
+        run: |
+          $setup = (Resolve-Path "dist/GeminiPath-Setup-0.2.0.exe").Path
+          $target = Join-Path $env:RUNNER_TEMP "geminipath-smoke"
+          $install = Start-Process -FilePath $setup -ArgumentList @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/DIR=$target", "/TASKS=!desktopicon") -PassThru -Wait
+          if ($install.ExitCode -ne 0) { throw "Installer exited $($install.ExitCode)" }
+          $app = Join-Path $target "GeminiPath.exe"
+          if (-not (Test-Path $app)) { throw "Installer did not install the GUI" }
+          & $app --self-test
+          if ($LASTEXITCODE -ne 0) { throw "Installed GUI failed its smoke check" }
+          $dataDir = Join-Path $env:LOCALAPPDATA "GeminiPath/patches"
+          New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
+          $backup = Join-Path $dataDir "backup-survival-test.bin"
+          [IO.File]::WriteAllBytes($backup, [byte[]](1, 2, 3))
+          $uninstall = Start-Process -FilePath (Join-Path $target "unins000.exe") -ArgumentList @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART") -PassThru -Wait
+          if ($uninstall.ExitCode -ne 0 -or (Test-Path $app)) { throw "Uninstall did not remove the GUI" }
+          if (-not (Test-Path $backup)) { throw "Uninstall removed user backups" }
+          Remove-Item $backup
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GeminiPath-Setup-Windows
+          path: dist/GeminiPath-Setup-0.2.0.exe
+          if-no-files-found: error

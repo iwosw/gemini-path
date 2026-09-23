@@ -13,6 +13,7 @@ import re
 import shutil
 import struct
 import subprocess
+import sys
 import tempfile
 
 
@@ -28,6 +29,16 @@ def default_target():
     if not base:
         raise ValueError("LOCALAPPDATA is not set; supply --target")
     return Path(base) / "Programs" / "Antigravity" / "resources" / "bin" / "language_server.exe"
+
+
+def state_dir():
+    """Keep installed-app backups outside the installer-managed app directory."""
+    if getattr(sys, "frozen", False):
+        base = os.environ.get("LOCALAPPDATA")
+        if not base:
+            raise ValueError("LOCALAPPDATA is not set")
+        return Path(base) / "GeminiPath" / "patches"
+    return Path(__file__).resolve().parent / "vendor" / "patches"
 
 
 def sha256(data):
@@ -196,18 +207,18 @@ def main():
     target = args.target or default_target()
     if not target.is_file():
         parser.error(f"executable not found: {target}")
-    state_dir = Path(__file__).resolve().parent / "vendor" / "patches"
+    backup_dir = state_dir()
     try:
         if args.action == "scan":
             data = target.read_bytes()
             state, offset = inspect(data)
             print(f"{state}: unique x64 client gate at offset {offset}; sha256={sha256(data)}")
         elif args.action == "patch":
-            record = patch_file(target, state_dir)
+            record = patch_file(target, backup_dir)
             print(f"Patched {target}; original SHA-256 {record['original_sha256']}; backup: {record['backup']}")
             print("Client-side experiment only: Google can still reject requests on its servers.")
         else:
-            print(restore_file(target, state_dir))
+            print(restore_file(target, backup_dir))
     except (OSError, ValueError, KeyError, json.JSONDecodeError, subprocess.CalledProcessError) as error:
         parser.exit(1, f"Error: {error}\n")
 

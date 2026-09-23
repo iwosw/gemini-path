@@ -4,6 +4,7 @@ from pathlib import Path
 import json
 import os
 import queue
+import sys
 import threading
 import tkinter as tk
 from tkinter import filedialog, ttk
@@ -11,8 +12,7 @@ from tkinter import filedialog, ttk
 import antigravity_patch as patcher
 
 
-ROOT = Path(__file__).resolve().parent
-STATE_DIR = ROOT / "vendor" / "patches"
+STATE_DIR = patcher.state_dir()
 BG = "#101521"
 PANEL = "#1b2433"
 FIELD = "#222e40"
@@ -64,6 +64,13 @@ class PatcherWindow:
     def __init__(self, root):
         self.root = root
         self.root.title("GeminiPath · Antigravity")
+        if getattr(sys, "frozen", False):
+            icon = Path(sys.executable).with_name("GeminiPath.ico")
+            if icon.is_file():
+                try:
+                    self.root.iconbitmap(str(icon))
+                except tk.TclError:
+                    pass
         self.root.geometry("770x620")
         self.root.minsize(680, 560)
         self.root.configure(bg=BG)
@@ -169,9 +176,15 @@ class PatcherWindow:
             try:
                 if operation == "patch":
                     result = patcher.patch_file(target, STATE_DIR)
-                    message = "Оригинал сохранён. SHA-256: " + result["original_sha256"][:16] + "…"
+                    message = "Патч готов. Резервная копия: " + result["backup"]
                 elif operation == "restore":
-                    message = patcher.restore_file(target, STATE_DIR)
+                    outcome = patcher.restore_file(target, STATE_DIR)
+                    message = {
+                        "restored": "Исходный файл восстановлен.",
+                        "already restored": "Исходный файл уже на месте.",
+                        "the app updated itself; current stock executable kept unchanged":
+                            "Antigravity обновился; новая версия сохранена без изменений.",
+                    }.get(outcome, outcome)
                 else:
                     message = "Файл проверен, изменений нет."
                 success = True
@@ -212,4 +225,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if "--self-test" in sys.argv:
+        patcher.default_target()
+        patcher.state_dir()
+        tk.Tcl()
+    else:
+        main()

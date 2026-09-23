@@ -65,6 +65,11 @@ class PatchTests(unittest.TestCase):
         self.assertEqual(self.target.read_bytes(), newer)
         self.assertFalse((self.state / "antigravity.json").exists())
 
+    def test_installed_backups_survive_uninstall_directory(self):
+        with patch.object(tool.sys, "frozen", True, create=True), \
+             patch.dict(tool.os.environ, {"LOCALAPPDATA": str(self.root)}):
+            self.assertEqual(tool.state_dir(), self.root / "GeminiPath" / "patches")
+
     def test_refuses_unknown_or_ambiguous_pattern(self):
         duplicated = bytearray(fixture())
         duplicated[600:615] = self.original[512:527]
