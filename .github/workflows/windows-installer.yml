@@ -31,8 +31,8 @@ jobs:
           python tools/create_icon.py
           python -m PyInstaller --noconfirm --clean --onefile --windowed --name GeminiPath --icon dist/GeminiPath.ico --distpath dist --workpath build --specpath . antigravity_gui.py
           if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed" }
-          & "dist/GeminiPath.exe" --self-test
-          if ($LASTEXITCODE -ne 0) { throw "Standalone GUI failed its smoke check" }
+          $smoke = Start-Process -FilePath (Resolve-Path "dist/GeminiPath.exe") -ArgumentList "--self-test" -PassThru -Wait
+          if ($smoke.ExitCode -ne 0) { throw "Standalone GUI failed its smoke check" }
       - name: Compile Inno Setup installer
         shell: pwsh
         run: |
@@ -49,8 +49,8 @@ jobs:
           if ($install.ExitCode -ne 0) { throw "Installer exited $($install.ExitCode)" }
           $app = Join-Path $target "GeminiPath.exe"
           if (-not (Test-Path $app)) { throw "Installer did not install the GUI" }
-          & $app --self-test
-          if ($LASTEXITCODE -ne 0) { throw "Installed GUI failed its smoke check" }
+          $smoke = Start-Process -FilePath $app -ArgumentList "--self-test" -PassThru -Wait
+          if ($smoke.ExitCode -ne 0) { throw "Installed GUI failed its smoke check" }
           $dataDir = Join-Path $env:LOCALAPPDATA "GeminiPath/patches"
           New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
           $backup = Join-Path $dataDir "backup-survival-test.bin"
