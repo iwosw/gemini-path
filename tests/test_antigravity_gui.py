@@ -39,6 +39,10 @@ class GuiTests(unittest.TestCase):
                 self.assertIn("close app", window.log.get("1.0", "end"))
                 self.assertEqual(window.patch_button.cget("state"), "normal")
                 self.assertEqual(target.read_bytes(), fixture())
+                with patch.object(gui.browser_route, "open_site", return_value="Отдельный браузер открыт"):
+                    window.run("browser")
+                    self._wait(root, window)
+                self.assertIn("Отдельный браузер открыт", window.log.get("1.0", "end"))
 
     @staticmethod
     def _wait(root, window):

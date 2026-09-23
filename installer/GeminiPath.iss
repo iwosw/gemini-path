@@ -1,5 +1,5 @@
 #define AppName "GeminiPath"
-#define AppVersion "0.2.0"
+#define AppVersion "0.3.0"
 
 [Setup]
 AppId={{1ddde26a-ab76-43cd-beb7-2ab15856ad25}

@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "antigravity_*.py"
+      - "browser_route.py"
       - "tools/create_icon.py"
       - "installer/**"
       - "requirements-build.txt"
@@ -43,7 +44,7 @@ jobs:
       - name: Test silent install and uninstall
         shell: pwsh
         run: |
-          $setup = (Resolve-Path "dist/GeminiPath-Setup-0.2.0.exe").Path
+          $setup = (Resolve-Path "dist/GeminiPath-Setup-0.3.0.exe").Path
           $target = Join-Path $env:RUNNER_TEMP "geminipath-smoke"
           $install = Start-Process -FilePath $setup -ArgumentList @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/DIR=$target", "/TASKS=!desktopicon") -PassThru -Wait
           if ($install.ExitCode -ne 0) { throw "Installer exited $($install.ExitCode)" }
@@ -62,5 +63,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: GeminiPath-Setup-Windows
-          path: dist/GeminiPath-Setup-0.2.0.exe
+          path: dist/GeminiPath-Setup-0.3.0.exe
           if-no-files-found: error

@@ -10,6 +10,7 @@ import tkinter as tk
 from tkinter import filedialog, ttk
 
 import antigravity_patch as patcher
+import browser_route
 
 
 STATE_DIR = patcher.state_dir()
@@ -71,8 +72,8 @@ class PatcherWindow:
                     self.root.iconbitmap(str(icon))
                 except tk.TclError:
                     pass
-        self.root.geometry("770x620")
-        self.root.minsize(680, 560)
+        self.root.geometry("770x730")
+        self.root.minsize(680, 660)
         self.root.configure(bg=BG)
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         self.target = patcher.default_target()
@@ -126,6 +127,15 @@ class PatcherWindow:
         self.restore_button = self._button(controls, "Откатить", lambda: self.run("restore"), AMBER)
         self.restore_button.pack(side="left")
 
+        website = tk.Frame(body, bg=PANEL, padx=20, pady=15)
+        website.pack(fill="x", pady=(1, 12))
+        self._label(website, "САЙТ GEMINI · БЕЗ ПЛАТНОГО VPN", 10, CYAN, True).pack(fill="x")
+        self._label(website, "Отдельный профиль Chrome/Edge · бесплатный SNI-шлюз · Google TLS",
+                    10, MUTED).pack(fill="x", pady=(3, 10))
+        self.website_button = self._button(
+            website, "Открыть Gemini в браузере", lambda: self.run("browser"), FIELD, TEXT)
+        self.website_button.pack(anchor="w")
+
         self.progress = ttk.Progressbar(body, mode="indeterminate")
         self.progress.pack(fill="x", pady=(2, 13))
         self._label(body, "ПОЛЕЗНО ЗНАТЬ", 9, MUTED, True).pack(fill="x")
@@ -152,6 +162,7 @@ class PatcherWindow:
         self.patch_button.configure(state="normal" if self.can_patch and not value else "disabled")
         self.restore_button.configure(state="normal" if self.can_restore and not value else "disabled")
         self.browse_button.configure(state="disabled" if value else "normal")
+        self.website_button.configure(state="disabled" if value else "normal")
         if value:
             self.progress.start(12)
         else:
@@ -168,13 +179,15 @@ class PatcherWindow:
     def run(self, operation):
         if self.busy:
             return
-        self.status.configure(text="Выполняется: " + operation + "…", fg=AMBER)
+        self.status.configure(text="Проверяем маршрут…" if operation == "browser" else "Выполняется: " + operation + "…", fg=AMBER)
         self._set_busy(True)
         target = self.target
 
         def work():
             try:
-                if operation == "patch":
+                if operation == "browser":
+                    message = browser_route.open_site()
+                elif operation == "patch":
                     result = patcher.patch_file(target, STATE_DIR)
                     message = "Патч готов. Резервная копия: " + result["backup"]
                 elif operation == "restore":
